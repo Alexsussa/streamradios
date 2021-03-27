@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- encoding: utf-8 -*-
 
+from __future__ import absolute_import, division, print_function
 from tkinter.ttk import *
 from tkinter.messagebox import *
 from tkinter import *
@@ -13,7 +14,28 @@ import os
 import multiprocessing
 import gettext
 
-__version__ = 0.2
+__all__ = [
+    "__title__",
+    "__summary__",
+    "__uri__",
+    "__version__",
+    "__author__",
+    "__email__",
+    "__license__",
+    "__copyright__",
+]
+
+__title__ = "packaging"
+__summary__ = "Core utilities for Python packages"
+__uri__ = "https://github.com/Alexsussa/streamradios"
+
+__version__ = "0.2"
+
+__author__ = "Alex Pinheiro"
+__email__ = "alexsussa2@gmail.com"
+
+__license__ = "GPL v3.0"
+__copyright__ = "2021 %s" % __author__
 
 appname = 'streamradios'
 ldir = '/usr/share/locale/'
