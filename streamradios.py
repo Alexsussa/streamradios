@@ -4,7 +4,7 @@
 from tkinter.ttk import *
 from tkinter.messagebox import *
 from tkinter import *
-from threading import Thread
+from threading import Thread, Timer
 from playsound import playsound
 import urllib.request
 import webbrowser
@@ -13,7 +13,7 @@ import os
 import multiprocessing
 import gettext
 
-__version__ = 0.1
+__version__ = 0.2
 
 appname = 'streamradios'
 ldir = '/usr/share/locale/'
@@ -24,12 +24,27 @@ _ = gettext.gettext
 buttons_radios = []
 namelist = []
 linklist = []
+dictname = {}
+strangercharradios = ['Transamérica', '105 FM']
+
+
+def check_for_updates():
+    try:
+        new_version = urllib.request.urlopen(
+            'https://raw.githubusercontent.com/Alexsussa/streamradios/master/version').read()
+        if float(new_version) > float(__version__):
+            showinfo(title=_('New software version'),
+                     message=_("There's a new software version to download.\n\nDownload it now!"))
+            webbrowser.open('doc/index.html')
+        if float(new_version) <= float(__version__):
+            showinfo(title=_('Updated'), message=_('Software has the last version installed.'))
+    except socket.error:
+        showerror(title=_('Connection error'), message=_('No internet connection.'))
 
 
 class Application:
     def __init__(self, master=None):
-
-        self.menubar = Menu(window, bd=0)
+        self.menubar = Menu(window, bd=0, bg='#d9d9d9')
         file = Menu(self.menubar, tearoff=0, bd=0)
         # file.add_command(label=_('Search radios...'), command=lambda: Thread(target=self.search_radios).start(), accelerator='Ctrl+F')
         file.add_command(label=_('Update radios'),
@@ -40,7 +55,9 @@ class Application:
         self.menubar.add_cascade(label=_('File'), menu=file)
 
         help = Menu(self.menubar, tearoff=0, bd=0)
-        help.add_command(label=_('Check for updates...'), command=lambda: Thread(target=self.check_for_updates, daemon=True).start(), accelerator='Ctrl+U')
+        help.add_command(label=_('Check for updates...'),
+                         command=lambda: Thread(target=check_for_updates, daemon=True).start(),
+                         accelerator='Ctrl+U')
         help.add_separator()
         help.add_command(label=_('About'), command=self.about, accelerator='Ctrl+H')
         self.menubar.add_cascade(label=_('Help'), menu=help)
@@ -63,7 +80,7 @@ class Application:
         self.bg.image = self.logo
         self.bg.pack(fill='both')
 
-        self.playing = Label(self.c2, text=_('Nothing is playing'), anchor='center')
+        self.playing = Label(self.c2, text=_('Nothing is playing'), anchor='center', font=('Arial', 12))
         self.playing.pack(fill='x', expand=False)
 
         self.textview = Text(self.c1, width=30)
@@ -97,13 +114,15 @@ class Application:
         window.bind('<Control-H>', lambda e: Thread(target=self.about, daemon=True).start())
         window.bind('<Control-h>', lambda e: Thread(target=self.about, daemon=True).start())
         window.bind('<Control-U>', lambda e: Thread(target=self.about, daemon=True).start())
-        window.bind('<Control-u>', lambda e: Thread(target=self.check_for_updates, daemon=True).start())
+        window.bind('<Control-u>', lambda e: Thread(target=check_for_updates, daemon=True).start())
+        window.bind('<Control-Q>', lambda e: window.quit())
+        window.bind('<Control-q>', lambda e: window.quit())
 
         # Functions are running when software starts
         Thread(target=self.create_buttons, daemon=True).start()
-        #Thread(target=self.update_radios, daemon=True).start()
+        # Thread(target=self.update_radios, daemon=True).start()
 
-    def about(self):
+    def about(self, event=None):
         popup = Toplevel()
         popup.title(_('About Stream Radios'))
         popup.geometry('400x450')
@@ -111,23 +130,28 @@ class Application:
         bg = Label(popup, image=imgbg)
         bg.image = imgbg
         bg.pack()
-        version = Label(popup, text='Version 0.1', fg='black')
+        version = Label(popup, text='Version 0.2', fg='black')
         version.pack()
-        gh = Label(popup, text='Stream Radios GitHub', cursor='hand2', underline=10, fg='blue')
-        gh.bind('<Button-1>', lambda e: Thread(target=webbrowser.open('')).start())
+        gh = Label(popup, text='Stream Radios GitHub', cursor='hand2', underline=14, fg='blue')
         gh.pack(pady=10)
-        license = Label(popup, text='Stream Radios License', cursor='hand2', underline=10, fg='blue')
-        license.bind('<Button-1>', lambda e: Thread(target=webbrowser.open('')).start())
+        gh.bind('<Button-1>', lambda e: webbrowser.open('https://github.com/Alexsussa/streamradios/'))
+        license = Label(popup, text='Stream Radios License', cursor='hand2', underline=14, fg='blue')
         license.pack(pady=10)
+        license.bind('<Button-1>',
+                     lambda e: webbrowser.open('https://github.com/Alexsussa/streamradios/blob/master/LICENSE/'))
         dev = Label(popup, text=_('Developed by: Alex Pinheiro'), cursor='hand2', fg='gray')
-        dev.bind('<Button-1>', lambda e: Thread(target=webbrowser.open('https://github.com/Alexsussa/')).start())
         dev.pack(side=LEFT, anchor='sw')
+        dev.bind('<Button-1>', lambda e: webbrowser.open('https://github.com/Alexsussa/'))
         copy = Label(popup, text='© Alex Pinheiro - 2021', fg='gray')
         copy.pack(side=RIGHT, anchor='se')
         popup.resizable(False, False)
-        popup.focus_force()
         popup.grab_set()
+        popup.focus_force()
         popup.transient(window)
+
+    def restart(self):
+        python = sys.executable
+        os.execl(python, python, *sys.argv)
 
     def active_buttons_again(self):
         for button in buttons_radios:
@@ -150,7 +174,7 @@ class Application:
         prefixs = ('http://', 'https://')
         # namelist = []
         # linklist = []
-        dictname = {}
+        # dictname = {}
         for linha in m3u8:
             if linha.startswith(ext):
                 namelist.append(linha.replace(ext, '').replace('\n', ''))
@@ -164,7 +188,7 @@ class Application:
         for i in dictname.keys():
             self.btnradio = Button(self.textview, text=i, relief='solid', cursor='hand2', anchor='center', width=41,
                                    height=2)
-            self.btnradio.config(command=lambda i=i: Thread(target=self.play(name=i, url=dictname[i])).start())
+            self.btnradio.config(command=lambda i=i: [Thread(target=self.play(name=i, url=dictname[i])).start()])
             self.btnradio.pack(side=TOP, fill='both')
 
             self.textview.window_create('end', window=self.btnradio)
@@ -174,67 +198,72 @@ class Application:
 
     def play(self, name, url):
         try:
-            title = ''
-            r = urllib.request.Request(url)
-            r.add_header('Icy-MetaData', 1)
-            res = urllib.request.urlopen(r)
-            icy_metaint = res.headers.get('icy-metaint')
-            # print(icy_metaint)
-            if icy_metaint is not None:
-                metaint = int(icy_metaint)
-                # print(metaint)
-                read_buffer = metaint + 255
-                content = res.read(read_buffer)
-                # print(content)
-                title = content[metaint:].split(b"'")[1]
-                print(title)
-                p = multiprocessing.Process(target=playsound, args=(url,), daemon=True)
-                if len(multiprocessing.active_children()) <= 0:
-                    p.start()
-                    for button in buttons_radios:
-                        button.config(state='disable')
-                        window.title(name)
-                        self.btnplaypause.config(image=self.imgstop)
-                        self.btnplaypause.config(command=lambda: [p.terminate(), self.active_buttons_again(),
-                                                                  self.btnplaypause.config(image=self.imgplay),
-                                                                  self.playing.config(text=_('Nothing is playing')),
-                                                                  window.title('Stream Radios')])
-                    if len(title) > 60 or len(title) <= 0:
-                        self.playing.config(text=name)
-                    else:
-                        self.playing.config(text=title)
-                        window.title(name)
+            multiprocessing.Queue()
+            p = multiprocessing.Process(target=playsound, args=(url,), daemon=True)
+            Thread(target=self.audioinfo, args=(name, url,)).start()
+            if len(multiprocessing.active_children()) <= 0:
+                p.start()
+                for button in buttons_radios:
+                    button.config(state='disable')
+                    window.title(name)
+                    self.btnplaypause.config(image=self.imgstop)
+                    self.btnplaypause.config(command=lambda: [p.terminate(), self.restart(), self.active_buttons_again(),
+                                                              self.btnplaypause.config(image=self.imgplay),
+                                                              self.playing.config(text=_('Nothing is playing'),
+                                                                                  cursor='arrow'),
+                                                              self.playing.unbind('<Enter>'),
+                                                              self.playing.unbind('<Button-1>'),
+                                                              window.title('Stream Radios')])
 
-                elif len(multiprocessing.active_children()) > 0:
-                    for p in multiprocessing.active_children():
-                        p.terminate()
-                        self.btnplaypause.config(image=self.imgplay)
-                        self.btnplaypause.config(command=lambda: p.start())
-                        self.playing.config(text=_('Nothing is playing'))
-                        window.title('Stream Radios')
+            elif len(multiprocessing.active_children()) > 0:
+                for p in multiprocessing.active_children():
+                    p.terminate()
+                    self.btnplaypause.config(image=self.imgplay)
+                    self.btnplaypause.config(command=lambda: [p.start()])
+                    self.playing.config(text=_('Nothing is playing'))
+                    window.title('Stream Radios')
 
-                elif window.destroy():
-                    for p in multiprocessing.active_children():
-                        p.terminate()
+            elif window.destroy():
+                for p in multiprocessing.active_children():
+                    p.terminate()
 
-                elif window.quit():
-                    for p in multiprocessing.active_children():
-                        p.terminate()
+            elif window.quit():
+                for p in multiprocessing.active_children():
+                    p.terminate()
 
         except socket.error:
             showerror(title=_('Error'),
                       message=_('Failed to connect the radio.\nCheck your internet connection or radio url.'))
 
-    def check_for_updates(self):
-        try:
-            new_version = urllib.request.urlopen('https://www.dropbox.com/s/xatb17mgjrm9xf2/linux_version.txt?dl=true').read()
-            if float(new_version) > float(__version__):
-                showinfo(title=_('New software version'), message=_("There's a new software version to download.\n\nDownload it now!"))
-                webbrowser.open('')
-            elif float(new_version) == float(__version__):
-                showinfo(title=_('Updated'), message=_('Software has the last version installed.'))
-        except socket.error:
-            showerror(title=_('Connection error'), message=_('No internet connection.'))
+    def audioinfo(self, name, url):
+        r = urllib.request.Request(url)
+        r.add_header('Icy-MetaData', 1)
+        res = urllib.request.urlopen(r)
+        icy_metaint = res.headers.get('icy-metaint')
+        # print(icy_metaint)
+        if icy_metaint is not None:
+            metaint = int(icy_metaint)
+            # print(metaint)
+            read_buffer = metaint + 255
+            content = res.read(read_buffer)
+            # print(content)
+            title = content[metaint:].split(b"'")[1]
+            title_list = []
+            if len(title) > 100 or len(title) <= 0:
+                self.playing.config(text=name)
+            elif name in strangercharradios:
+                self.playing.config(text=name)
+            else:
+                self.playing.config(text=title, cursor='hand2')
+                window.title(name)
+                musicname = str(title).replace("b'", '').replace("'", '')
+                self.playing.bind('<Enter>', lambda e: self.playing.config(fg='blue', font=('Arial', 12, 'underline')))
+                self.playing.bind('<Leave>', lambda e: self.playing.config(fg='black', font=('Arial', 12)))
+                self.playing.bind('<Button-1>',
+                                  lambda e: webbrowser.open(f"https://www.google.com/search?q={musicname}"))
+
+                if __name__ == '__main__':
+                    self.audioinfo(name, url)
 
 
 window = Tk()
@@ -244,4 +273,5 @@ window.tk.call('wm', 'iconphoto', window._w, logo)
 window.title('Stream Radios')
 window.geometry('1000x600')
 window.resizable(False, False)
+window.update()
 window.mainloop()
