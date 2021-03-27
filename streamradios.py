@@ -25,7 +25,7 @@ __all__ = [
     "__copyright__",
 ]
 
-__title__ = "packaging"
+__title__ = "StreamRadios"
 __summary__ = "Core utilities for Python packages"
 __uri__ = "https://github.com/Alexsussa/streamradios"
 
