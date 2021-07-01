@@ -1,0 +1,98 @@
+@charset "UTF-8";
+
+body {
+	margin: 0px;
+}
+
+main#cabecalho {
+	margin-top: 50px;
+	text-align: center;
+	display: block;
+	position: relative;
+	font-family: Arial, Helvetica, sans-serif;
+}
+
+main#cabecalho h1 {
+	font-size: 45px;
+	text-align: center;
+}
+
+main#cabecalho h2 {
+	text-align: center;
+	font-size: 15px;
+	color: gray;
+	margin-top: -30px;
+	font-style: lighter;
+}
+
+main#cabecalho h3 {
+	text-align: center;
+	font-size: 30px;
+	color: gray;
+	margin-top: 10px;
+	font-style: normal;
+}
+
+div#download {
+	text-align: center;
+	display: block;
+}
+
+div#download h1 {	
+	text-align: center;
+	font-style: Arial, Helvetica, sans-serif;
+	color: blue;
+	width: 200px;
+	height: 60px;
+	border-width: 1px;
+	border-radius: 5px;
+	border-style: solid;
+	border-color: blue;
+	box-sizing: border-box;
+	padding: 10px;
+	margin: auto;
+}
+
+div#download h1:hover {
+	background-color: blue;
+	color: white;
+	box-shadow: 1px 1px 2px black;
+}
+
+footer {
+	font-family: Arial, Helvetica, sans-serif;
+	text-align: center;
+	color: white;
+	margin-top: 100px;
+	background-color: #363636;
+	background-image: linear-gradient(to top, #696969, #363636);
+	border-style: solid;
+	border: 1px;
+	padding: 10px;
+	height: 140px;
+}
+
+div#footer h1 {
+	margin: auto;
+	width: 200px;
+	font-size: 20px;
+	border: 1px;
+	border-style: solid;
+	border-radius: 5px;
+	border-color: black;
+	box-sizing: border-box;
+}
+
+div#footer h1:hover {
+	color: #ffffff;
+	background-color: #000000;
+}
+
+div#footer a {
+	text-decoration: none;
+	color: #ffffff;
+}
+
+div#footer a:hover {
+	text-decoration: underline;
+}
