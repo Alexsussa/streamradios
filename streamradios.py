@@ -11,6 +11,7 @@ import urllib.request
 import webbrowser
 import socket
 import os
+import sys
 import multiprocessing
 import gettext
 
@@ -57,7 +58,7 @@ def check_for_updates():
         if float(new_version) > float(__version__):
             showinfo(title=_('New software version'),
                      message=_("There's a new software version to download.\n\nDownload it now!"))
-            webbrowser.open('doc/index.html')
+            webbrowser.open('docs/index.html')
         if float(new_version) <= float(__version__):
             showinfo(title=_('Updated'), message=_('Software has the last version installed.'))
     except socket.error:
@@ -67,7 +68,7 @@ def check_for_updates():
 class Application:
     def __init__(self, master=None):
         self.menubar = Menu(window, bd=0, bg='#d9d9d9')
-        file = Menu(self.menubar, tearoff=0, bd=0)
+        file = Menu(self.menubar, tearoff=0, bd=0, activebackground='#00a2ed', activeforeground='white')
         # file.add_command(label=_('Search radios...'), command=lambda: Thread(target=self.search_radios).start(), accelerator='Ctrl+F')
         file.add_command(label=_('Update radios'),
                          command=lambda: [Thread(target=self.create_buttons, daemon=True).start(),
@@ -76,7 +77,7 @@ class Application:
         file.add_command(label=_('Quit'), command=window.quit, accelerator='Ctrl+Q')
         self.menubar.add_cascade(label=_('File'), menu=file)
 
-        help = Menu(self.menubar, tearoff=0, bd=0)
+        help = Menu(self.menubar, tearoff=0, bd=0, activebackground='#00a2ed', activeforeground='white')
         help.add_command(label=_('Check for updates...'),
                          command=lambda: Thread(target=check_for_updates, daemon=True).start(),
                          accelerator='Ctrl+U')
@@ -87,11 +88,11 @@ class Application:
         window.config(menu=self.menubar)
 
         s = Style()
-        s.configure('TPanedwindow', background='#f0f0f0')
+        s.configure('TPanedwindow', background='#ffffff')
         self.c1 = Panedwindow(master)
         self.c1.pack(side=LEFT, fill='both', expand=True, anchor='nw')
 
-        self.c2 = Panedwindow(master, style='TPanedwindow')
+        self.c2 = Panedwindow(master)
         self.c2.pack(side=LEFT, fill='both', expand=True, anchor='center')
 
         self.c3 = Frame(master)
@@ -118,8 +119,7 @@ class Application:
 
         self.imgstop = PhotoImage(file='/usr/share/icons/hicolor/256x256/apps/stop.png')
         self.imgplay = PhotoImage(file='/usr/share/icons/hicolor/256x256/apps/play.png')
-        self.btnplaypause = Button(self.c2, image=self.imgplay, cursor='hand2', relief='flat',
-                                   activebackground='#f0f0f0')
+        self.btnplaypause = Button(self.c2, image=self.imgplay, cursor='hand2', relief='flat', activebackground='white')
         self.btnplaypause.image = self.imgplay
         self.btnplaypause.pack(side=BOTTOM, expand=True, anchor='center')
 
@@ -139,6 +139,8 @@ class Application:
         window.bind('<Control-u>', lambda e: Thread(target=check_for_updates, daemon=True).start())
         window.bind('<Control-Q>', lambda e: window.quit())
         window.bind('<Control-q>', lambda e: window.quit())
+        window.bind('<Button-1>', lambda e: self.uncolor_menu())
+        self.menubar.bind('<Button-1>', lambda e: self.color_menu())
 
         # Functions are running when software starts
         Thread(target=self.create_buttons, daemon=True).start()
@@ -164,7 +166,7 @@ class Application:
         dev = Label(popup, text=_('Developed by: Alex Pinheiro'), cursor='hand2', fg='gray')
         dev.pack(side=LEFT, anchor='sw')
         dev.bind('<Button-1>', lambda e: webbrowser.open('https://github.com/Alexsussa/'))
-        copy = Label(popup, text='© Alex Pinheiro - 2021', fg='gray')
+        copy = Label(popup, text='©Alex Pinheiro - 2021', fg='gray')
         copy.pack(side=RIGHT, anchor='se')
         popup.resizable(False, False)
         popup.grab_set()
@@ -209,7 +211,7 @@ class Application:
 
         for i in dictname.keys():
             self.btnradio = Button(self.textview, text=i, relief='solid', cursor='hand2', anchor='center', width=41,
-                                   height=2)
+                                   height=2, activebackground='#00a2ed', activeforeground='white')
             self.btnradio.config(command=lambda i=i: [Thread(target=self.play(name=i, url=dictname[i])).start()])
             self.btnradio.pack(side=TOP, fill='both')
 
@@ -284,14 +286,20 @@ class Application:
                 self.playing.bind('<Button-1>',
                                   lambda e: webbrowser.open(f"https://www.google.com/search?q={musicname}"))
 
-                if __name__ == '__main__':
-                    self.audioinfo(name, url)
+            self.audioinfo(name, url)
+
+    def color_menu(self):
+        self.menubar.config(activebackground='#00a2ed', activeforeground='white')
+
+    def uncolor_menu(self):
+        self.menubar.config(activebackground='#cccccc', activeforeground='black')
 
 
 window = Tk()
 Application(window)
 logo = PhotoImage(file='/usr/share/icons/hicolor/256x256/apps/streamradios.png')
 window.tk.call('wm', 'iconphoto', window._w, logo)
+window.tk.call('source', 'themes/azure/azure.tcl')
 window.title('Stream Radios')
 window.geometry('1000x600')
 window.resizable(False, False)
