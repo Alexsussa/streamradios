@@ -8,7 +8,7 @@ http://144.217.29.205:80/live
 #EXTINF:-1,ROCK ANTENNE Heavy Metal (Germany)
 http://194.97.151.145:80/heavy-metal
 #EXTINF:-1,89 FM A Rádio Rock
-https://ice.fabricahost.com.br/89aradiorocksp?1609443364691
+https://18723.live.streamtheworld.com/RADIO_89FM_SC
 #EXTINF:-1,Batera Rádio Rock
 http://live3.livemus.com.br:27282/;?1609443471905
 #EXTINF:-1,91 Rock
@@ -20,13 +20,13 @@ http://144.217.129.213:8398/stream
 #EXTINF:-1,Dumont 104.3 FM
 https://rrdns-dumont.webnow.com.br/dumont.aac?1609327381249
 #EXTINF:-1,Transamérica 100.1 FM
-https://shout25.crossradio.com.br:19100/stream?1611419359434
+https://26513.live.streamtheworld.com/RT_SP_SC
 #EXTINF:-1,Metropolitana 98.5 FM
 https://f33.fabricahost.com.br/metropolitana985sp?f=1611419469N15300142cb15dc62c28b73dc81cdd9ca
 #EXTINF:-1,105 FM
 http://148.72.158.239:8010/live?1609327329840
-#EXTINF:-1,Band FM 99.3
-http://142.4.192.161:8016/stream?1609327097835
+#EXTINF:-1,Band FM 96.1
+https://26513.live.streamtheworld.com/BANDFM_SPAAC_SC
 #EXTINF:-1,Radio Gospel Life
 https://s15.maxcast.com.br:8296/live?1609331860814
 #EXTINF:-1,Rede Fé
@@ -38,4 +38,8 @@ https://shout35.crossradio.com.br:18116/stream?1609443857226
 #EXTINF:-1,Rádio Nativa FM 90.1
 http://142.4.192.161:8012/stream?1609443923362
 #EXTINF:-1,Rádio Mix FM 106.3
-https://shout12.crossradio.com.br:18002/stream?1609443946974
+https://14133.live.streamtheworld.com/MIXFM_SAOPAULOAAC.aac?1659739182325
+#EXTINF:-1,Teste 1
+https://14133.live.streamtheworld.com/MIXFM_SAOPAULOAAC.aac?165973918232
+#EXTINF:-1,Teste 2
+https://14133.live.streamtheworld.com/MIXFM_SAOPAULOAAC.aac?1659739182
