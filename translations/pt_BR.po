@@ -1,0 +1,87 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Stream Radios\n"
+"POT-Creation-Date: 2022-08-14 16:26-0300\n"
+"PO-Revision-Date: 2022-08-14 16:28-0300\n"
+"Last-Translator: \n"
+"Language-Team: Alex Pinheiro\n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: Poedit 3.0.1\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-KeywordsList: _\n"
+"X-Poedit-SearchPath-0: app.py\n"
+"X-Poedit-SearchPath-1: common.py\n"
+
+#: app.py:49
+msgid "File"
+msgstr "Arquivo"
+
+#: app.py:50
+msgid "Update radios list..."
+msgstr "Atualizar lista de rádios..."
+
+#: app.py:51
+msgid "Check for software updates"
+msgstr "Procurar por atualizações de software"
+
+#: app.py:53
+msgid "Quit"
+msgstr "Sair"
+
+#: app.py:55
+msgid "Help"
+msgstr "Ajuda"
+
+#: app.py:56
+msgid "Documentation"
+msgstr "Documentação"
+
+#: app.py:57
+msgid "License"
+msgstr "Licença"
+
+#: app.py:60
+msgid "About"
+msgstr "Sobre"
+
+#: app.py:101 app.py:170 app.py:183 common.py:48
+msgid "Nothing is playing"
+msgstr "Nada tocando"
+
+#: app.py:220
+msgid "About Stream Radios"
+msgstr "Sobre o Stream Radios"
+
+#: common.py:72
+msgid "New software version"
+msgstr "Nova versão de software"
+
+#: common.py:74
+msgid ""
+"There's a new software version to download.\n"
+"\n"
+"Download it now!"
+msgstr ""
+"Há uma nova versão de software para baixar.\n"
+"\n"
+"Baixe agora!"
+
+#: common.py:79
+msgid "Updated"
+msgstr "Atualizado"
+
+#: common.py:80
+msgid "Software has the last version installed."
+msgstr "Software já tem a última versão instalada."
+
+#: common.py:84
+msgid "Connection error"
+msgstr "Erro de conexão"
+
+#: common.py:85
+msgid "No internet connection."
+msgstr "Sem conexão com a internet"

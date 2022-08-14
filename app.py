@@ -1,307 +1,239 @@
 #!/usr/bin/python3
-# -*- encoding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
-from __future__ import absolute_import, division, print_function
-from tkinter.ttk import *
-from tkinter.messagebox import *
-from tkinter import *
-from threading import Thread, Timer
-from playsound import playsound
-import urllib.request
-import webbrowser
-import socket
-import os
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from functools import partial
+from common import audioInfo, browserOnGoogle, check_for_updates, updateRadioList
 import sys
-import multiprocessing
+import os
+import socket
+import vlc
+import webbrowser
 import gettext
 
-__all__ = [
-    "__title__",
-    "__summary__",
-    "__uri__",
-    "__version__",
-    "__author__",
-    "__email__",
-    "__license__",
-    "__copyright__",
-]
+APPNAME = 'streamradios'
+LOCALE = os.path.abspath('/usr/share/locale')
 
-__title__ = "StreamRadios"
-__summary__ = "Core utilities for Python packages"
-__uri__ = "https://github.com/Alexsussa/streamradios"
-
-__version__ = "0.2"
-
-__author__ = "Alex Pinheiro"
-__email__ = "alexsussa2@gmail.com"
-
-__license__ = "GPL v3.0"
-__copyright__ = "2021 %s" % __author__
-
-appname = 'streamradios'
-ldir = '/usr/share/locale/'
-gettext.bindtextdomain(appname, ldir)
-gettext.textdomain(appname)
+gettext.bindtextdomain(APPNAME, LOCALE)
+gettext.textdomain(APPNAME)
 _ = gettext.gettext
 
-buttons_radios = []
-namelist = []
-linklist = []
-dictname = {}
-strangercharradios = ['Transamérica', '105 FM']
+
+radios_buttons = []
+radios = {}
+links = []
+names = []
 
 
-def check_for_updates():
-    try:
-        new_version = urllib.request.urlopen(
-            'https://raw.githubusercontent.com/Alexsussa/streamradios/master/version').read()
-        if float(new_version) > float(__version__):
-            showinfo(title=_('New software version'),
-                     message=_("There's a new software version to download.\n\nDownload it now!"))
-            webbrowser.open('docs/index.html')
-        if float(new_version) <= float(__version__):
-            showinfo(title=_('Updated'), message=_('Software has the last version installed.'))
-    except socket.error:
-        showerror(title=_('Connection error'), message=_('No internet connection.'))
+class Interface(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        # App's images
+        self.logoBg = QPixmap('/opt/streamradios/images/logo.png')
+        self.playIcon = QIcon('/opt/streamradios/images/play.png')
+        self.stopIcon = QIcon('/opt/streamradios/images/stop.png')
+        self.winIcon = QIcon('/opt/streamradios/images/streamradios.png')
+        self.css = open('/usr/share/doc/streamradios/sr.css', 'r').read()
+
+        self.popup = QMessageBox()
+
+        self.vlcInstance = vlc.Instance()
+        self.mp = self.vlcInstance.media_player_new()
+
+        self.mainMenu = QMenuBar()
+        self.mainMenu.setFont(QFont('Helvetica', 11))
+
+        self.fileMenu = QMenu(_('File'))
+        self.fileMenu.addAction(_('Update radios list...'), updateRadioList, 'Ctrl+R')
+        self.fileMenu.addAction(_('Check for software updates'), lambda: check_for_updates(self.popup), 'Ctrl+U')
+        self.fileMenu.addSeparator()
+        self.fileMenu.addAction(_('Quit'), sys.exit, 'Ctrl+Q')
+
+        self.helpMenu = QMenu(_('Help'))
+        self.helpMenu.addAction(_('Documentation'), lambda: webbrowser.open('https://github.com/Alexsussa/streamradios#streamradios'), 'Ctrl+D')
+        self.helpMenu.addAction(_('License'), lambda: webbrowser.open('https://github.com/Alexsussa/streamradios/blob/master/docs/COPYING'), 'Ctrl+L')
+        self.helpMenu.addAction('GitHub', lambda: webbrowser.open('https://github.com/Alexsussa/streamradios'), 'Ctrl+G')
+        self.helpMenu.addSeparator()
+        self.helpMenu.addAction(_('About'), self.about, 'Ctrl+H')
+
+        self.mainMenu.addMenu(self.fileMenu)
+        self.mainMenu.addMenu(self.helpMenu)
+        self.setMenuBar(self.mainMenu)
+
+        self.cw = QWidget()
+
+        self.central = QWidget()
+
+        self.vlayoutMain = QHBoxLayout()
+
+        self.vlayoutLeft = QVBoxLayout()
+        self.vlayoutLeft.setAlignment(Qt.AlignLeft)
+
+        self.vlayoutRight = QVBoxLayout()
+        self.vlayoutRight.setAlignment(Qt.AlignRight)
+
+        self.vlayoutCenter = QVBoxLayout()
+        self.vlayoutCenter.setAlignment(Qt.AlignCenter)
+
+        self.cw.setLayout(self.vlayoutMain)
+        self.setCentralWidget(self.cw)
+        
+        self.scrollArea = QScrollArea(self)
+        self.scrollArea.setAlignment(Qt.AlignLeft)
+        self.scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scrollArea.setWidgetResizable(True)
+        self.scrollArea.setWidget(self.central)
+
+        self.vlayoutMain.addWidget(self.scrollArea)
+
+        self.vlayoutLeft = QVBoxLayout(self.central)
+        self.vlayoutLeft.setAlignment(Qt.AlignLeft)
+
+        self.vlayoutMain.addLayout(self.vlayoutRight)
+
+        self.labelLogo = QLabel()
+        self.labelLogo.setPixmap(self.logoBg)
+
+        self.lbPlaying = QLabel(_('Nothing is playing'))
+        self.lbPlaying.setFont(QFont('Helvetica', 14))
+        self.lbPlaying.setAlignment(Qt.AlignCenter)
+
+        self.btnPlayStop = QPushButton()
+        self.btnPlayStop.setObjectName('PlayPause')
+        self.btnPlayStop.setFixedSize(150, 150)
+        self.btnPlayStop.setIcon(self.playIcon)
+        self.btnPlayStop.setIconSize(QSize(180, 180))
+        self.btnPlayStop.setCursor(QCursor(Qt.PointingHandCursor))
+        self.btnPlayStop.clicked.connect(self.stopRadio)
+
+        self.vlayoutRight.addWidget(self.labelLogo)
+        self.vlayoutRight.addStretch()
+        self.vlayoutRight.addWidget(self.lbPlaying)
+        self.vlayoutRight.addStretch()
+        self.vlayoutRight.addWidget(self.btnPlayStop, alignment=Qt.AlignCenter)
+        self.vlayoutRight.addStretch()
+
+        self.setStyleSheet(self.css)
+
+        # Funções que iniciam com o programa
+        self.addButtons()
+
+        # Atalhos do teclado
+        self.lbPlaying.mousePressEvent = lambda event: browserOnGoogle(self.lbPlaying.text())
+
+    
+    def addButtons(self):
+        radiosDir = os.path.expanduser('~/.config/streamradios/file/')
+        if not os.path.exists(radiosDir):
+            os.makedirs(radiosDir)
+        else:
+            file = open(radiosDir + 'radios.m3u8', 'r')
+            for item in file:
+                if str(item).startswith('#EXTINF:-1,'):
+                    names.append(str(item).replace('#EXTINF:-1,', '').replace('\n', ''))
+                if str(item).startswith('https://') or str(item).startswith('http://'):
+                    links.append(str(item).replace('\n', ''))
+
+                for name in names:
+                    radios.setdefault(name)
+                for link in links:
+                    radios[name] = link
+
+            for i in radios.keys():
+                self.radioButton = QPushButton(i, self.central)
+                self.radioButton.clicked.connect(partial(self.playRadio, i, radios[i]))
+                self.radioButton.setFixedHeight(26)
+                self.vlayoutLeft.addWidget(self.radioButton)
+                radios_buttons.append(self.radioButton)
 
 
-class Application:
-    def __init__(self, master=None):
-        self.menubar = Menu(window, bd=0, bg='#d9d9d9')
-        file = Menu(self.menubar, tearoff=0, bd=0, activebackground='#00a2ed', activeforeground='white')
-        # file.add_command(label=_('Search radios...'), command=lambda: Thread(target=self.search_radios).start(), accelerator='Ctrl+F')
-        file.add_command(label=_('Update radios'),
-                         command=lambda: [Thread(target=self.create_buttons, daemon=True).start(),
-                                          Thread(target=self.update_radios, daemon=True).start()], accelerator='Ctrl+R')
-        file.add_separator()
-        file.add_command(label=_('Quit'), command=window.quit, accelerator='Ctrl+Q')
-        self.menubar.add_cascade(label=_('File'), menu=file)
-
-        help = Menu(self.menubar, tearoff=0, bd=0, activebackground='#00a2ed', activeforeground='white')
-        help.add_command(label=_('Check for updates...'),
-                         command=lambda: Thread(target=check_for_updates, daemon=True).start(),
-                         accelerator='Ctrl+U')
-        help.add_separator()
-        help.add_command(label=_('About'), command=self.about, accelerator='Ctrl+H')
-        self.menubar.add_cascade(label=_('Help'), menu=help)
-
-        window.config(menu=self.menubar)
-
-        s = Style()
-        s.configure('TPanedwindow', background='#ffffff')
-        self.c1 = Panedwindow(master)
-        self.c1.pack(side=LEFT, fill='both', expand=True, anchor='nw')
-
-        self.c2 = Panedwindow(master)
-        self.c2.pack(side=LEFT, fill='both', expand=True, anchor='center')
-
-        self.c3 = Frame(master)
-        self.c3.pack()
-
-        self.logo = PhotoImage(file='/usr/share/icons/hicolor/256x256/apps/logo.png')
-        self.bg = Label(self.c2, image=self.logo, height=400, width=-500)
-        self.bg.image = self.logo
-        self.bg.pack(fill='both')
-
-        self.playing = Label(self.c2, text=_('Nothing is playing'), anchor='center', font=('Arial', 12))
-        self.playing.pack(fill='x', expand=False)
-
-        self.textview = Text(self.c1, width=30)
-        self.textview.pack(side=LEFT, fill='both', expand=True)
-        self.vb = Scrollbar(self.c1, command=self.textview.yview)
-        self.vb.pack(side=RIGHT, fill='y')
-        self.textview.config(yscrollcommand=self.vb.set)
-
-        """self.imgprev = PhotoImage(file='images/prev.png')
-        self.btnprev = Button(self.c2, image=self.imgprev, cursor='hand2', relief='flat')
-        self.btnprev.image = self.imgprev
-        self.btnprev.pack(side=LEFT, fill='both', expand='yes')"""
-
-        self.imgstop = PhotoImage(file='/usr/share/icons/hicolor/256x256/apps/stop.png')
-        self.imgplay = PhotoImage(file='/usr/share/icons/hicolor/256x256/apps/play.png')
-        self.btnplaypause = Button(self.c2, image=self.imgplay, cursor='hand2', relief='flat', activebackground='white')
-        self.btnplaypause.image = self.imgplay
-        self.btnplaypause.pack(side=BOTTOM, expand=True, anchor='center')
-
-        """self.imgnext = PhotoImage(file='images/next.png')
-        self.btnnext = Button(self.c2, image=self.imgnext, cursor='hand2', relief='flat')
-        self.btnnext.image = self.imgnext
-        self.btnnext.pack(side=LEFT, fill='both', expand='yes')"""
-
-        # binds
-        window.bind('<Control-R>', lambda e: [Thread(target=self.create_buttons, daemon=True).start(),
-                                              Thread(target=self.update_radios, daemon=True).start()])
-        window.bind('<Control-r>', lambda e: [Thread(target=self.create_buttons, daemon=True).start(),
-                                              Thread(target=self.update_radios, daemon=True).start()])
-        window.bind('<Control-H>', lambda e: Thread(target=self.about, daemon=True).start())
-        window.bind('<Control-h>', lambda e: Thread(target=self.about, daemon=True).start())
-        window.bind('<Control-U>', lambda e: Thread(target=self.about, daemon=True).start())
-        window.bind('<Control-u>', lambda e: Thread(target=check_for_updates, daemon=True).start())
-        window.bind('<Control-Q>', lambda e: window.quit())
-        window.bind('<Control-q>', lambda e: window.quit())
-        window.bind('<Button-1>', lambda e: self.uncolor_menu())
-        self.menubar.bind('<Button-1>', lambda e: self.color_menu())
-
-        # Functions are running when software starts
-        Thread(target=self.create_buttons, daemon=True).start()
-        # Thread(target=self.update_radios, daemon=True).start()
-
-    def about(self, event=None):
-        popup = Toplevel()
-        popup.title(_('About Stream Radios'))
-        popup.geometry('400x450')
-        imgbg = PhotoImage(file='/usr/share/icons/hicolor/256x256/apps/streamradios.png')
-        bg = Label(popup, image=imgbg)
-        bg.image = imgbg
-        bg.pack()
-        version = Label(popup, text='Version 0.2', fg='black')
-        version.pack()
-        gh = Label(popup, text='Stream Radios GitHub', cursor='hand2', underline=14, fg='blue')
-        gh.pack(pady=10)
-        gh.bind('<Button-1>', lambda e: webbrowser.open('https://github.com/Alexsussa/streamradios/'))
-        license = Label(popup, text='Stream Radios License', cursor='hand2', underline=14, fg='blue')
-        license.pack(pady=10)
-        license.bind('<Button-1>',
-                     lambda e: webbrowser.open('https://github.com/Alexsussa/streamradios/blob/master/LICENSE/'))
-        dev = Label(popup, text=_('Developed by: Alex Pinheiro'), cursor='hand2', fg='gray')
-        dev.pack(side=LEFT, anchor='sw')
-        dev.bind('<Button-1>', lambda e: webbrowser.open('https://github.com/Alexsussa/'))
-        copy = Label(popup, text='©Alex Pinheiro - 2021', fg='gray')
-        copy.pack(side=RIGHT, anchor='se')
-        popup.resizable(False, False)
-        popup.grab_set()
-        popup.focus_force()
-        popup.transient(window)
-
-    def restart(self):
-        python = sys.executable
-        os.execl(python, python, *sys.argv)
-
-    def active_buttons_again(self):
-        for button in buttons_radios:
-            button.config(state='normal')
-
-    def update_radios(self):
-        self.textview.config(state='normal')
-        self.textview.delete(1.0, END)
-        url = 'https://bit.ly/RadiosAP'
-        urllib.request.urlretrieve(url, '/opt/streamradios/file/radios.m3u8')
-        self.textview.config(state='disable')
-        showinfo(title=_('Update complete'), message=_('Radios list update completed.\nSoftware will restart now.'))
-        python = sys.executable
-        os.execl(python, python, *sys.argv)
-
-    def create_buttons(self):
-        name = ''
-        m3u8 = open('/opt/streamradios/file/radios.m3u8', 'r')
-        ext = '#EXTINF:-1,'
-        prefixs = ('http://', 'https://')
-        # namelist = []
-        # linklist = []
-        # dictname = {}
-        for linha in m3u8:
-            if linha.startswith(ext):
-                namelist.append(linha.replace(ext, '').replace('\n', ''))
-            if linha.startswith(prefixs):
-                linklist.append(linha)
-            for name in namelist:
-                dictname.setdefault(name)
-            for link in linklist:
-                dictname[name] = link
-
-        for i in dictname.keys():
-            self.btnradio = Button(self.textview, text=i, relief='solid', cursor='hand2', anchor='center', width=41,
-                                   height=2, activebackground='#00a2ed', activeforeground='white')
-            self.btnradio.config(command=lambda i=i: [Thread(target=self.play(name=i, url=dictname[i])).start()])
-            self.btnradio.pack(side=TOP, fill='both')
-
-            self.textview.window_create('end', window=self.btnradio)
-            self.textview.insert('end', '\n')
-            self.textview.config(state='disable')
-            buttons_radios.append(self.btnradio)
-
-    def play(self, name, url):
+    def playRadio(self, name, url):
         try:
-            multiprocessing.Queue()
-            p = multiprocessing.Process(target=playsound, args=(url,), daemon=True)
-            Thread(target=self.audioinfo, args=(name, url,)).start()
-            if len(multiprocessing.active_children()) <= 0:
-                p.start()
-                for button in buttons_radios:
-                    button.config(state='disable')
-                    window.title(name)
-                    self.btnplaypause.config(image=self.imgstop)
-                    self.btnplaypause.config(command=lambda: [p.terminate(), self.restart(), self.active_buttons_again(),
-                                                              self.btnplaypause.config(image=self.imgplay),
-                                                              self.playing.config(text=_('Nothing is playing'),
-                                                                                  cursor='arrow'),
-                                                              self.playing.unbind('<Enter>'),
-                                                              self.playing.unbind('<Button-1>'),
-                                                              window.title('Stream Radios')])
+            media = vlc.Media(url)
+            self.mp.set_media(media)
+            self.mp.play()
+            #print(f'TOCANDO AGORA {name}\n{url}')
+            self.btnPlayStop.setIcon(self.stopIcon)
+            #self.lbPlaying.setText(name)
+            self.lbPlaying.setCursor(QCursor(Qt.PointingHandCursor))
+            self.lbPlaying.setStyleSheet('QLabel:hover { color: blue; }')
+            window.setWindowTitle(name)
+            audioInfo(name, url, self.lbPlaying)
+            for button in radios_buttons:
+                button.setDisabled(True)
+        except socket.error:
+            self.btnPlayStop.setIcon(self.playIcon)
+            self.lbPlaying.setText(_('Nothing is playing'))
+            self.lbPlaying.setCursor(QCursor(Qt.ArrowCursor))
+            self.lbPlaying.setStyleSheet('QLabel:hover { color: black; }')
+            window.setWindowTitle('Stream Radios')
+            for button in radios_buttons:
+                button.setDisabled(False)
 
-            elif len(multiprocessing.active_children()) > 0:
-                for p in multiprocessing.active_children():
-                    p.terminate()
-                    self.btnplaypause.config(image=self.imgplay)
-                    self.btnplaypause.config(command=lambda: [p.start()])
-                    self.playing.config(text=_('Nothing is playing'))
-                    window.title('Stream Radios')
-
-            elif window.destroy():
-                for p in multiprocessing.active_children():
-                    p.terminate()
-
-            elif window.quit():
-                for p in multiprocessing.active_children():
-                    p.terminate()
+    
+    def stopRadio(self):
+        try:
+            if self.mp.is_playing() == 1:
+                self.mp.stop()
+                self.btnPlayStop.setIcon(self.playIcon)
+                self.lbPlaying.setText(_('Nothing is playing'))
+                self.lbPlaying.setCursor(QCursor(Qt.ArrowCursor))
+                self.lbPlaying.setStyleSheet('QLabel:hover { color: black; }')
+                window.setWindowTitle('Stream Radios')
+                for button in radios_buttons:
+                    button.setDisabled(False)
 
         except socket.error:
-            showerror(title=_('Error'),
-                      message=_('Failed to connect the radio.\nCheck your internet connection or radio url.'))
+            self.mp.stop()
 
-    def audioinfo(self, name, url):
-        r = urllib.request.Request(url)
-        r.add_header('Icy-MetaData', 1)
-        res = urllib.request.urlopen(r)
-        icy_metaint = res.headers.get('icy-metaint')
-        # print(icy_metaint)
-        if icy_metaint is not None:
-            metaint = int(icy_metaint)
-            # print(metaint)
-            read_buffer = metaint + 255
-            content = res.read(read_buffer)
-            # print(content)
-            title = content[metaint:].split(b"'")[1]
-            title_list = []
-            if len(title) > 100 or len(title) <= 0:
-                self.playing.config(text=name)
-            elif name in strangercharradios:
-                self.playing.config(text=name)
-            else:
-                self.playing.config(text=title, cursor='hand2')
-                window.title(name)
-                musicname = str(title).replace("b'", '').replace("'", '')
-                self.playing.bind('<Enter>', lambda e: self.playing.config(fg='blue', font=('Arial', 12, 'underline')))
-                self.playing.bind('<Leave>', lambda e: self.playing.config(fg='black', font=('Arial', 12)))
-                self.playing.bind('<Button-1>',
-                                  lambda e: webbrowser.open(f"https://www.google.com/search?q={musicname}"))
+    
+    def about(self):
+        logo = QLabel('')
+        logo.setStyleSheet('background-image: url(images/streamradios.png); background-repeat: no-repeat; width: 100%; height: 100%;')
+        logo.setWindowIcon(QIcon(self.winIcon))
+        logo.setFixedSize(256, 256)
+        name = QLabel('Stream Radios')
+        name.setFixedHeight(20)
+        version = QLabel('v0.3')
+        version.setFixedHeight(10)
 
-            self.audioinfo(name, url)
+        license_file = open('doc/COPYING', 'r').read()
+        licen = QTextEdit()
+        licen.setReadOnly(True)
+        licen.setText(license_file)
 
-    def color_menu(self):
-        self.menubar.config(activebackground='#00a2ed', activeforeground='white')
+        layout = QVBoxLayout()
+        layout.addWidget(logo)
+        layout.addWidget(name)
+        layout.addWidget(version)
+        layout.addWidget(licen)
 
-    def uncolor_menu(self):
-        self.menubar.config(activebackground='#cccccc', activeforeground='black')
+        layout.setAlignment(logo, Qt.AlignHCenter)
+        layout.setAlignment(name, Qt.AlignHCenter)
+        layout.setAlignment(version, Qt.AlignHCenter)
+
+        about = QDialog()
+        about.setWindowTitle(_('About Stream Radios'))
+        about.setWindowIcon(self.winIcon)
+        about.setFixedSize(450, 500)
+        about.setLayout(layout)
+        about.exec_()
 
 
-window = Tk()
-Application(window)
-logo = PhotoImage(file='/usr/share/icons/hicolor/256x256/apps/streamradios.png')
-window.tk.call('wm', 'iconphoto', window._w, logo)
-window.tk.call('source', 'themes/azure/azure.tcl')
-window.title('Stream Radios')
-window.geometry('1000x600')
-window.resizable(False, False)
-window.update()
-window.mainloop()
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    translator = QTranslator()
+    systemLocale = QLocale().system().name()
+    library = QLibraryInfo.location(QLibraryInfo.LibraryLocation.TranslationsPath)
+    translator.load('qt_' + systemLocale, library)
+    window = Interface()
+    window.setWindowTitle('Stream Radios')
+    window.setFixedSize(800, 600)
+    window.setWindowIcon(QIcon('images/streamradios.png'))
+    window.show()
+    app.installTranslator(translator)
+    sys.exit(app.exec_())

@@ -1,0 +1,15 @@
+@charset "utf-8";
+
+QPushButton:hover {
+    background-color: black;
+    color: white;
+}
+
+QPushButton#PlayPause {
+    border: none;
+    border-radius: 5px;
+}
+
+QPushButton#PlayPause:hover {
+    background-color: #efefef;
+}

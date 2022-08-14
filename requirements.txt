@@ -1,0 +1,6 @@
+pyqt5
+python-vlc
+pyinstaller
+pillow
+pip
+setuptools
